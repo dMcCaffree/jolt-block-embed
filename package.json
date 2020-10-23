@@ -1,9 +1,9 @@
 {
-  "name": "@trolley/spotlight",
-  "version": "1.6.0",
-  "description": "A plug-and-play widget for adding a top bar with text, voice, CTAs, analytics, and more.",
+  "name": "jolt-block",
+  "version": "0.0.1",
+  "description": "A no-code solution to help you grow a successful blog.",
   "files": [
-    "spotlight.js"
+    "jolt-block.js"
   ],
   "scripts": {
     "dev": "webpack --watch --mode production",
@@ -12,21 +12,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usetrolley/spotlight-widget.git"
+    "url": "git+https://github.com/dMcCaffree/jolt-block-embed"
   },
   "keywords": [
-    "spotlight",
-    "widget",
-    "top",
-    "bar",
+    "jolt block",
+    "blog",
+    "blogging",
+    "comments",
     "analytics"
   ],
-  "author": "Trolley",
+  "author": "Jolt Block",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/usetrolley/spotlight-widget/issues"
+    "url": "https://github.com/dMcCaffree/jolt-block-embed/issues"
   },
-  "homepage": "https://github.com/usetrolley/spotlight-widget#readme",
+  "homepage": "https://github.com/dMcCaffree/jolt-block-embed#readme",
   "devDependencies": {
     "@babel/core": "^7.9.6",
     "@babel/preset-env": "^7.9.6",

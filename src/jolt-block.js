@@ -1,4 +1,4 @@
-import "./spotlight.scss";
+import "./jolt-block.scss";
 import create from "./helpers/create";
 import buildAudioInner from "./components/AudioInner";
 import buildTextInner from "./components/TextInner";
