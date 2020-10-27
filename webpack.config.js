@@ -1,7 +1,7 @@
 module.exports = {
-  entry: "./src/spotlight.js",
+  entry: "./src/jolt-block.js",
   output: {
-    filename: "spotlight.js",
+    filename: "jolt-block.js",
     path: __dirname,
   },
 
