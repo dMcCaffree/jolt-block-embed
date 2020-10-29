@@ -1,11 +1,7 @@
 import "./jolt-block.scss";
 import create from "./helpers/create";
-import buildAudioInner from "./components/AudioInner";
-import buildTextInner from "./components/TextInner";
-import createEventListeners from "./helpers/createEventListeners";
-import getUrlParameter from "./helpers/getUrlParameter";
-import addStyleTag from "./helpers/addStyleTag";
 import getParameterByName from "./helpers/getParameterbyName";
+import HttpClient from "./helpers/HttpClient";
 
 (function () {
   if (getParameterByName('jid')) {
@@ -15,8 +11,29 @@ import getParameterByName from "./helpers/getParameterbyName";
   }
 
   // MVP 0.1
-  // 1. Grab blog ID
-  // 2. GET blog and make sure analyticsEnabled = true;
+  const client = new HttpClient();
+
+  class JoltBlock {
+    constructor() {
+      this.blogId = window.joltBlockId;
+      this.settings = null;
+    }
+
+    getBlogSettings(id) {
+      const url = `https://api.joltblock.com/settings/${id}`;
+
+      client.get(url, response => {
+        response = JSON.parse(response);
+        console.log('RESPONSE:', response);
+        this.settings = response;
+      });
+    }
+  }
+
+  window.JoltBlock = new JoltBlock();
+  window.JoltBlock.getBlogSettings(window.JoltBlock.blogId);
+
+  // 2. Check if article exists / create a new one if not
   // 3. Set tracking visit type conditions:
   //      - Words on page, time on page, scroll amount = read vs skim vs bounce
   //      - Should be set so it will always track *SOMETHING*, bounce worst case maybe on page leave
