@@ -1,10 +1,11 @@
 {
   "name": "jolt-block",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A no-code solution to help you grow a successful blog.",
   "files": [
     "jolt-block.js"
   ],
+  "main": "jolt-block.js",
   "scripts": {
     "dev": "webpack --watch --mode production",
     "build": "webpack --mode production",

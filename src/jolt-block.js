@@ -75,7 +75,6 @@ import getScrollPercent from "./helpers/getScrollPercent";
       }
       const [type] = getEventType();
       if (type === 'read' && !hasTrackedEvent) {
-        console.log('TRACKING:', type);
         track();
       }
     }
