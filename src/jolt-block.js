@@ -84,6 +84,9 @@ import getScrollPercent from "./helpers/getScrollPercent";
     window.JoltBlock.getBlogSettings();
 
     function track() {
+      if (hasTrackedEvent) {
+        return;
+      }
       const [type, timeOnPage, percentScrolled] = getEventType();
       const data = {
         type,
