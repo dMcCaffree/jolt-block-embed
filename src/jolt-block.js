@@ -23,6 +23,10 @@ import getScrollPercent from "./helpers/getScrollPercent";
       // Display builder with options from current blog pre-filled
     }
 
+    if (window.location.href.split('?')[0].split('/')[3].length === 0)  {
+      return;
+    }
+
     // MVP 0.1
     const client = new HttpClient();
 
