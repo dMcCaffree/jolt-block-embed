@@ -108,7 +108,7 @@ import getScrollPercent from "./helpers/getScrollPercent";
       const timeOnPage = endTime - startTime;
       const requiredMinutesToRead = words / 225 // 225 is average-ish wpm reading
       const minutesOnPage = timeOnPage / 60000;
-      const likelyPercentageRead = minutesOnPage < requiredMinutesToRead ? minutesOnPage / requiredMinutesToRead : 100;
+      const likelyPercentageRead = minutesOnPage < requiredMinutesToRead ? minutesOnPage / requiredMinutesToRead * 100 : 100;
       const percentScrolled = getScrollPercent(furthestScroll);
       const isRead = likelyPercentageRead >= 50 && percentScrolled >= 75;
       const isSkim = likelyPercentageRead >= 25 && percentScrolled >= 50;
