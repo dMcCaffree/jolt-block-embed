@@ -23,7 +23,10 @@ import getScrollPercent from "./helpers/getScrollPercent";
       // Display builder with options from current blog pre-filled
     }
 
-    if (window.location.href.split('?')[0].split('/')[3].length === 0)  {
+    if (
+      window.location.href.split('?')[0].split('/')[3].length <= 1 ||
+      window.location.href.split('?')[0].split('/')[3] === 'preview'
+    ) {
       return;
     }
 
