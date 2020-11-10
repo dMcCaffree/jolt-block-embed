@@ -22,10 +22,18 @@ import getScrollPercent from "./helpers/getScrollPercent";
     // Display builder with options from current blog pre-filled
   }
 
-  if (
-    window.location.href.split('?')[0].split('/')[3].length <= 1 ||
-    window.location.href.split('?')[0].split('/')[3] === 'preview'
-  ) {
+  const urlFragmentAfterSlash = window.location.href.split('?')[0].split('/')[3];
+  const isArticleOverride = document.querySelector('[property="og:type"]') && document.querySelector('[property="og:type"]').content === 'article';
+
+  if ((
+    urlFragmentAfterSlash.length <= 1 ||
+    urlFragmentAfterSlash === 'preview' ||
+    urlFragmentAfterSlash === 'tag' ||
+    urlFragmentAfterSlash === 'author' ||
+    urlFragmentAfterSlash === 'tags' ||
+    urlFragmentAfterSlash === 'categories' ||
+    urlFragmentAfterSlash === 'authors'
+  ) && !isArticleOverride) {
     return;
   }
 
@@ -64,7 +72,7 @@ import getScrollPercent from "./helpers/getScrollPercent";
           this.articleId = response.id;
           window.addEventListener('beforeunload', track);
         }
-      });
+      });f
     }
 
     trackEvent(data) {
