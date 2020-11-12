@@ -3,9 +3,12 @@ import getParameterByName from "./helpers/getParameterbyName";
 import HttpClient from "./helpers/HttpClient";
 import getWordCount from "./helpers/getWordCount";
 import getScrollPercent from "./helpers/getScrollPercent";
+import create from "./helpers/create";
+import offset from "./helpers/offset";
 
 (function () {
-  const isProduction = true;
+  let lastHoveredElement = null;
+  const isProduction = false;
   const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
   const startTime = +new Date();
   let furthestScroll = 0;
@@ -20,6 +23,58 @@ import getScrollPercent from "./helpers/getScrollPercent";
     // Load in the script for setup
     // GET blog settings
     // Display builder with options from current blog pre-filled
+    createInsertLine();
+    document.onmouseover = moveInsertLine;
+
+    window.addEventListener('scroll',function () {
+      moveInsertLine(lastHoveredElement);
+    });
+
+    window.onresize = function () {
+      moveInsertLine(lastHoveredElement);
+    }
+
+    function createInsertLine() {
+      const line = create('div');
+      const plusButton = create('div');
+      plusButton.className = 'jb_plus-button';
+      plusButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="40.333" height="40.332" viewBox="0 0 40.333 40.332" class="jb_plus-icon">
+  <path id="np_plus_178497_000000" d="M59.9,44.8H44.8V59.9a2.53,2.53,0,1,1-5.06,0V44.8H24.632a2.53,2.53,0,1,1,0-5.06H39.738V24.632a2.53,2.53,0,0,1,5.06,0V39.738H59.9a2.47,2.47,0,0,1,2.53,2.53A2.513,2.513,0,0,1,59.9,44.8Z" transform="translate(-22.102 -22.102)" fill="#fff"/>
+</svg>
+`;
+      line.className = 'jb_insert-line';
+      line.append(plusButton);
+      plusButton.addEventListener('click', e => {
+        //TODO: This should show the iframe above or below the plus button!!!
+        console.log('CLICKED HOMIE!!!');
+      });
+
+      document.body.append(line);
+    }
+
+    function moveInsertLine(e) {
+      if (e === null) {
+        return;
+      }
+
+      const elementOffset = offset(e.target);
+      // CHECK IF WE SHOULD BE MOVING IT TO THE RIGHT SPOT
+      if (e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('jb_') >= 0) return;
+
+      if ((e.target.tagName !== 'DIV' && e.target.tagName !== 'SECTION') || offset.width <= 90 || offset.height < 1) {
+        if (e.target.parentNode) {
+          moveInsertLine({target: e.target.parentNode});
+        }
+        return;
+      }
+
+      var insertLine = document.querySelector('.jb_insert-line');
+      insertLine.style.top = `${elementOffset.top + elementOffset.height - 1}px`;
+      insertLine.style.left = `${elementOffset.left}px`;
+      insertLine.style.width = `${elementOffset.width}px`;
+      e.target.style.paddingBottom = e.target.style.paddingBottom + 20;
+      lastHoveredElement = e;
+    }
   }
 
   const urlFragmentAfterSlash = window.location.href.split('?')[0].split('/')[3];
@@ -72,7 +127,7 @@ import getScrollPercent from "./helpers/getScrollPercent";
           this.articleId = response.id;
           window.addEventListener('beforeunload', track);
         }
-      });f
+      });
     }
 
     trackEvent(data) {
