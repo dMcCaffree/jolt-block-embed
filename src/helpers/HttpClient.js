@@ -19,6 +19,16 @@ function HttpClient() {
       callback(this.responseText);
     };
   }
+
+  this.put = (url, data, callback) => {
+    let request = new XMLHttpRequest();
+    request.open("PUT", url, true);
+    request.setRequestHeader('Content-Type', 'application/json');
+    request.send(JSON.stringify(data));
+    request.onload = function() {
+      callback(this.responseText);
+    };
+  }
 }
 
 export default HttpClient;

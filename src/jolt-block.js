@@ -5,6 +5,7 @@ import getWordCount from "./helpers/getWordCount";
 import getScrollPercent from "./helpers/getScrollPercent";
 import create from "./helpers/create";
 import offset from "./helpers/offset";
+import uniqueSelector from 'css-selector-generator';
 
 (function () {
   let lastHoveredElement = null;
@@ -46,7 +47,10 @@ import offset from "./helpers/offset";
       line.append(plusButton);
       plusButton.addEventListener('click', e => {
         //TODO: This should show the iframe above or below the plus button!!!
-        console.log('CLICKED HOMIE!!!');
+        const elementSelector = uniqueSelector(lastHoveredElement.target);
+        console.log('INSERT BLOCK AFTER THIS SELECTOR:', elementSelector);
+        // TODO: DEFER THIS UNTIL AFTER ALL SETTINGS HAVE BEEN CHOSEN?
+        window.JoltBlock.enableCommentsBlock(elementSelector);
       });
 
       document.body.append(line);
@@ -126,6 +130,8 @@ import offset from "./helpers/offset";
         if (typeof response === 'object' && response.hasOwnProperty('id')) {
           this.articleId = response.id;
           window.addEventListener('beforeunload', track);
+
+          window.JoltBlock.setUpBlocks();
         }
       });
     }
@@ -134,6 +140,39 @@ import offset from "./helpers/offset";
       hasTrackedEvent = true;
       const url = `${baseUrl}/analytics/track?blog=${data.blog}&article=${data.article}&type=${data.type}&scroll=${data.scrolled}&timeOnPage=${data.timeOnPage}`;
       client.get(url);
+    }
+
+    setUpBlocks() {
+      // ===== ADD BLOCKS ===== //
+
+      // 1 - COMMENTS
+      this.addCommentBlock();
+    }
+
+    addCommentBlock() {
+      if (this.settings && this.settings.hasOwnProperty('commentsEnabled') && this.settings.commentsEnabled) {
+        const elementBefore = document.querySelector(this.settings.commentsElement);
+        if (elementBefore.length < 1) {
+          return;
+        }
+
+        const iframe = create('iframe');
+        iframe.src = `https://app.joltblock.com/blocks/comments/${this.articleId}`;
+
+        const container = create('div');
+        container.className = 'jb_block-container jb_block-comments';
+        container.append(iframe);
+        elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
+      }
+    }
+
+    enableCommentsBlock(selector) {
+      const requestUrl = `${baseUrl}/settings`;
+      console.log('ENABLING:', selector);
+      client.put(requestUrl, {commentsEnabled: true, commentsElement: selector, id: this.blogId}, response => {
+        //TODO: Make this more secure. Check the jid and 401 if not matching.
+        console.log('ENABLING RESPONSE:', response);
+      });
     }
   }
 
@@ -179,15 +218,4 @@ import offset from "./helpers/offset";
     const isSkim = likelyPercentageRead >= 25 && percentScrolled >= 50;
     return [isRead ? 'read' : isSkim ? 'skim' : 'bounce', timeOnPage, percentScrolled];
   }
-
-  // 2. Check if article exists / create a new one if not
-  // 3. Set tracking visit type conditions:
-  //      - Words on page, time on page, scroll amount = read vs skim vs bounce
-  //      - Should be set so it will always track *SOMETHING*, bounce worst case maybe on page leave
-  // 4. Make a call to Plaudy with whichever tracking event needs to be tracked.
-
-  // MVP 0.2
-  // 1. Load all other widgets into the page where they go (take time to make sure this happens async and always after main content loads)
-  //      - This should be done in order of visibility, with comments probably always being last
-  // 2.
 })();

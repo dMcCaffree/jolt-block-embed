@@ -29,3 +29,15 @@
     }
   }
 }
+
+.jb_block-container {
+  width: 100%;
+
+  iframe {
+    width: 100%;
+  }
+
+  &.jb_block-comments {
+    height: 84px;
+  }
+}
