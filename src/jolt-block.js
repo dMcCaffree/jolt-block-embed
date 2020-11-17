@@ -21,12 +21,15 @@ import uniqueSelector from 'css-selector-generator';
   if (hasTrackedEvent) {
     return;
   }
+
+  //TODO: MAKE THIS MORE ACCURATE SOMEHOW
   const words = getWordCount(document.body);
 
   if (getParameterByName('jid')) {
     createInsertLine();
     createTooltipIframe();
     createEditModeBanner();
+    addDisableButtons();
     document.onmouseover = moveInsertLine;
 
     window.addEventListener('scroll', function () {
@@ -45,29 +48,40 @@ import uniqueSelector from 'css-selector-generator';
       }
     });
 
+    function addDisableButtons() {
+      const disableOverlay = create('div');
+      disableOverlay.className = 'jb_disable-overlay';
+      disableOverlay.innerHTML = `REMOVE BLOCK 💣`;
+
+      const commentsBlock = document.querySelector('.jb_block-comments');
+
+      if (!commentsBlock) {
+        setTimeout(addDisableButtons, 500);
+        return;
+      }
+
+      commentsBlock.append(disableOverlay);
+      commentsBlock.classList.add('customize-mode');
+
+      disableOverlay.addEventListener('click', () => {
+        window.JoltBlock.disableCommentsBlock();
+      });
+    }
+
     function createEditModeBanner() {
-      const container = create('div');
+      const container = create('a');
       container.className = 'jb_banner jb_edit-banner';
+      container.href = `${iframeBaseUrl}`;
 
       const content = create('div');
       content.className = 'jb_banner-content';
 
-      const logo = create('img');
-      logo.className = 'jb_banner-logo';
-      logo.src = '';
-
       const text = create('p');
       text.className = 'jb_banner-text';
-      text.innerText = `You are currently customizing Jolt Block for this blog.`;
+      text.innerText = `← ${'\u00A0'} Back to Jolt Block ⚡️`;
 
-      const saveButton = create('a');
-      saveButton.className = 'jb_save-button';
-      saveButton.innerText = 'SAVE CHANGES';
-
-      content.append(logo, text, saveButton);
-
+      content.append(text);
       container.append(content);
-
       document.body.append(container);
     }
 
@@ -199,7 +213,6 @@ import uniqueSelector from 'css-selector-generator';
 
       client.get(requestUrl, response => {
         response = JSON.parse(response);
-        console.log('RESPONSE:', response);
         if (typeof response === 'object' && response.hasOwnProperty('id')) {
           this.articleId = response.id;
           window.addEventListener('beforeunload', track);
@@ -223,13 +236,11 @@ import uniqueSelector from 'css-selector-generator';
     }
 
     addCommentBlock(selector) {
-      if (this.settings && this.settings.hasOwnProperty('commentsEnabled') && this.settings.commentsEnabled) {
-        const elementBefore = selector ? document.querySelector(selector) : document.querySelector(this.settings.commentsElement);
-        if (elementBefore && elementBefore.length < 1) {
+      if (window.JoltBlock.settings && window.JoltBlock.settings.hasOwnProperty('commentsEnabled') && window.JoltBlock.settings.commentsEnabled) {
+        const elementBefore = selector ? document.querySelector(selector) : document.querySelector(window.JoltBlock.settings.commentsElement);
+        if ((elementBefore && elementBefore.length < 1) || !elementBefore) {
           retryAttempt++;
-          if (retryAttempt < 6) {
-            setTimeout(this.addCommentBlock, 500);
-          }
+          setTimeout(this.addCommentBlock, 500);
           return;
         }
 
@@ -239,13 +250,22 @@ import uniqueSelector from 'css-selector-generator';
           existingCommentsBlock.remove();
         }
 
-        const iframe = create('iframe');
-        iframe.src = `${iframeBaseUrl}/blocks/comments/${this.articleId}`;
-
         const container = create('div');
         container.className = 'jb_block-container jb_block-comments';
+
+        const iframe = create('iframe');
+        iframe.className = 'jb_block-iframe jb_block-comments-iframe';
+        iframe.src = `${iframeBaseUrl}/blocks/comments/${this.articleId}`;
+
         container.append(iframe);
         elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
+
+        if (typeof addDisableButtons === 'function') {
+          addDisableButtons();
+        }
+      } else {
+        retryAttempt++;
+        setTimeout(this.addCommentBlock, 500);
       }
     }
 
@@ -260,13 +280,19 @@ import uniqueSelector from 'css-selector-generator';
 
     disableCommentsBlock() {
       const requestUrl = `${baseUrl}/settings`;
-      client.put(requestUrl, {commentsEnabled: false, id: this.blogId}, response => {
+      client.put(requestUrl, {commentsEnabled: false, commentsElement: '', id: this.blogId}, response => {
         //TODO: Make this more secure. Check the jid and 401 if not matching.
         const existingCommentsBlock = document.querySelector('.jb_block-comments');
         if (existingCommentsBlock) {
           existingCommentsBlock.remove();
         }
         window.JoltBlock.closeTooltip();
+
+        const tooltipIframee = document.querySelector('.jb_tooltip-container iframe');
+
+        if (tooltipIframee) {
+          tooltipIframee.contentWindow.postMessage('disable comments', '*');
+        }
       });
     }
 
