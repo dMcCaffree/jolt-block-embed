@@ -30,7 +30,6 @@ import io from './lib/socket.io';
 
   window.addEventListener('locationchange', function(){
     if (window.location.href.split('#')[0] !== lastURL) {
-      console.log('RUNNING AGAIN');
       runJoltBlock();
     }
   });
