@@ -8,7 +8,13 @@ import uniqueSelector from 'css-selector-generator';
 import io from './lib/socket.io';
 
 (function () {
+  const isProduction = true;
+  const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
+  const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
+  const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
+  let socket = io(wsUrl);
   let lastURL = window.location.href.split('#')[0];
+
   // TODO: Move these to different helper?
   history.pushState = ( f => function pushState(){
     const ret = f.apply(this, arguments);
@@ -30,16 +36,15 @@ import io from './lib/socket.io';
 
   window.addEventListener('locationchange', function(){
     if (window.location.href.split('#')[0] !== lastURL) {
+      lastURL = window.location.href.split('#')[0];
+      if (window.JoltBlock && window.JoltBlock.pendingId) {
+        socket.emit('locationchange', window.JoltBlock.pendingId);
+      }
       runJoltBlock();
     }
   });
 
   let lastHoveredElement = null;
-  const isProduction = true;
-  const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
-  const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
-  const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
-  const socket = io(wsUrl);
   const startTime = +new Date();
   let furthestScroll = 0;
   let hasTrackedEvent = false;
@@ -252,7 +257,7 @@ import io from './lib/socket.io';
               workspace: '5f9c471b4fd85316d520147a',
               trackedUser: this.blogId,
             }, id => {
-              console.log('PENDING ID:', id);
+              // console.log('PENDING ID:', id);
               window.JoltBlock.pendingId = id;
               watchAnalytics();
             });
@@ -387,6 +392,11 @@ import io from './lib/socket.io';
 
   function watchAnalytics() {
     if (window.JoltBlock.pendingId) {
+      if (!socket.connected) {
+        setTimeout(watchAnalytics, 100);
+      }
+
+      // console.log('EMITTING PAGEVIEW AGAIN, DISCONNECTED?', socket.disconnected);
       socket.emit('pageview', window.JoltBlock.pendingId);
     }
   }
