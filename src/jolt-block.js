@@ -8,7 +8,7 @@ import uniqueSelector from 'css-selector-generator';
 import io from './lib/socket.io';
 
 (function () {
-  const isProduction = true;
+  const isProduction = false;
   const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
@@ -176,7 +176,7 @@ import io from './lib/socket.io';
         // CHECK IF WE SHOULD BE MOVING IT TO THE RIGHT SPOT
         if (e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('jb_') >= 0) return;
 
-        if ((e.target.tagName !== 'DIV' && e.target.tagName !== 'SECTION') || offset.width <= 90 || offset.height < 1) {
+        if ((e.target.tagName !== 'DIV' && e.target.tagName !== 'SECTION' && e.target.tagName !== 'ARTICLE' && e.target.tagName !== 'H1' && e.target.tagName !== 'H2') || offset.width <= 90 || offset.height < 1) {
           if (e.target.parentNode) {
             moveInsertLine({target: e.target.parentNode});
           }
@@ -256,6 +256,10 @@ import io from './lib/socket.io';
               objectId: response.id,
               workspace: '5f9c471b4fd85316d520147a',
               trackedUser: this.blogId,
+              data: {
+                referrer: document && document.referrer ? document.referrer : '',
+                url: document && document.location ? document.location.href : '',
+              },
             }, id => {
               // console.log('PENDING ID:', id);
               window.JoltBlock.pendingId = id;
@@ -278,6 +282,7 @@ import io from './lib/socket.io';
 
         // 1 - COMMENTS
         this.addCommentBlock();
+        this.addSidebar();
       }
 
       addCommentBlock(selector) {
@@ -300,7 +305,7 @@ import io from './lib/socket.io';
 
           const iframe = create('iframe');
           iframe.className = 'jb_block-iframe jb_block-comments-iframe';
-          iframe.src = `${iframeBaseUrl}/blocks/comments/${this.articleId}`;
+          iframe.src = `${iframeBaseUrl}/blocks/comments/${this.blogId}/${this.articleId}`;
 
           container.append(iframe);
           elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
@@ -311,6 +316,34 @@ import io from './lib/socket.io';
         } else {
           retryAttempt++;
           setTimeout(this.addCommentBlock, 500);
+        }
+      }
+
+      addSidebar() {
+        if (window.JoltBlock.settings && window.JoltBlock.settings.hasOwnProperty('commentsEnabled') && window.JoltBlock.settings.commentsEnabled) {
+          const existingSidebar = document.querySelector('.jb_block-sidebar');
+
+          if (existingSidebar) {
+            existingSidebar.remove();
+          }
+
+          const container = create('div');
+          container.className = 'jb_block-container jb_block-sidebar';
+
+          const backdrop = create('div');
+          backdrop.className = 'jb_backdrop';
+
+          const iframe = create('iframe');
+          iframe.className = 'jb_block-iframe jb_block-sidebar-iframe';
+          iframe.src = `${iframeBaseUrl}/sidebar/${this.blogId}/${this.articleId}`;
+
+          container.append(backdrop);
+          container.append(iframe);
+          document.body.append(container);
+
+          backdrop.addEventListener('click', () => {
+            container.classList.remove('open');
+          });
         }
       }
 
@@ -333,10 +366,10 @@ import io from './lib/socket.io';
           }
           window.JoltBlock.closeTooltip();
 
-          const tooltipIframee = document.querySelector('.jb_tooltip-container iframe');
+          const tooltipIframe = document.querySelector('.jb_tooltip-container iframe');
 
-          if (tooltipIframee) {
-            tooltipIframee.contentWindow.postMessage('disable comments', '*');
+          if (tooltipIframe) {
+            tooltipIframe.contentWindow.postMessage('disable comments', '*');
           }
         });
       }
@@ -367,10 +400,6 @@ import io from './lib/socket.io';
 
     // Listener for window.parent.postMessage() from React web app's iframe
     window.addEventListener('message', event => {
-      if (event.origin !== iframeBaseUrl) {
-        return;
-      }
-
       if (event.data === 'enable comments') {
         const elementSelector = uniqueSelector(lastHoveredElement.target);
         window.JoltBlock.enableCommentsBlock(elementSelector);
@@ -382,6 +411,20 @@ import io from './lib/socket.io';
 
       if (event.data === 'close') {
         window.JoltBlock.closeTooltip();
+      }
+
+      if (event.data === 'open sidebar') {
+        const sidebar = document.querySelector('.jb_block-sidebar');
+        if (sidebar) {
+          sidebar.classList.add('open');
+        }
+      }
+
+      if (event.data === 'close sidebar') {
+        const sidebar = document.querySelector('.jb_block-sidebar');
+        if (sidebar) {
+          sidebar.classList.remove('open');
+        }
       }
     });
 
