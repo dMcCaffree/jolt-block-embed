@@ -8,7 +8,7 @@ import io from './lib/socket.io';
 import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
 (function () {
-  const isProduction = true;
+  const isProduction = false;
   const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
@@ -47,12 +47,11 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
     const mode = getParameterByName('jolt_mode');
     const token = getParameterByName('token');
 
-    if (mode === 'edit') {
-      localStorage.setItem('jolt_mode', mode);
+    if (mode === 'edit' || window.location.hash === '#jolt_edit') {
+      localStorage.setItem('jolt_mode', 'edit');
     }
 
     if (token) {
-      // TODO: USE TOKEN TO AUTHENTICATE, GENERATE ON WEB APP SIDE
       localStorage.setItem('jolt_token', token);
     }
 
