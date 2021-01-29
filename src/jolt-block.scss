@@ -32,7 +32,7 @@ iframe {
   width: 100%;
   height: 2px;
   background-color: #FE9ED5;
-  z-index: 99999999;
+  z-index: 99999998;
   top: 150%;
 
   .jb_plus-button {
@@ -126,12 +126,13 @@ iframe {
     display: none;
     top: 0;
     left: 0;
-    background-color: rgba($main-color, .9);
+    background-color: rgba($text-color, .5);
     color: white;
     font-weight: bold;
     letter-spacing: 1px;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
+    font-family: Roboto, sans-serif;
   }
 
   &:hover {
@@ -158,30 +159,100 @@ iframe {
   }
 }
 
+.jb_toolbar-container {
+  width: 100%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999999;
+
+  iframe {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    max-height: 56px;
+    box-shadow: 0 0 30px rgba(60,60,60,.3);
+    background-color: #222;
+  }
+}
+
+.jb_close-preview-button {
+  background: linear-gradient(330deg, #272727 0%, #1b1b1b 60%);
+  color: white;
+  box-shadow: 0 0 20px rgba(0,0,0,.15);
+  transition-duration: .2s;
+  position: fixed;
+  bottom: 15px;
+  right: 20px;
+  z-index: 99999998;
+  border-radius: 5px;
+  border: 1px solid black;
+  padding: 12px 20px;
+  font-weight: 800;
+  font-size: 14px;
+  min-height: 32px;
+  min-width: 99px;
+  cursor: pointer;
+  display: block;
+  text-transform: uppercase;
+  font-family: sans-serif;
+  box-sizing: border-box;
+
+  &:hover {
+    bottom: 18px;
+  }
+}
+
 .jb_edit-banner {
   position: fixed;
   bottom: 15px;
   background: #1b1b1b;
   background: linear-gradient(330deg, #1b1b1b 0%, #303030 100%);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 0 30px rgba(8,18,38,0.3);
   transition-duration: .2s;
   left: 50%;
   transform: translateX(-50%);
   z-index: 999999999;
-  padding: 20px 40px;
+  padding: 8px 0;
   cursor: pointer;
-  text-decoration: none;
+  font-weight: 700;
+  min-width: 145px;
+
+  &.save-button {
+    margin-left: 80px;
+  }
+
+  &.preview-button {
+    margin-left: -80px;
+    background: white;
+
+    &:hover {
+      background: white;
+    }
+
+    .jb_banner-content {
+      .jb_banner-text {
+        color: #1b1b1b;
+      }
+    }
+  }
+
+  &.back-button {
+
+  }
 
   &:hover {
     bottom: 18px;
     background: linear-gradient(330deg, #1f1f1f 0%, #3a3a3a 100%);
+    text-decoration: none;
 
-    .jb_banner-content {
-      .jb_banner-text {
-        color: $main-color;
-      }
-    }
+    //.jb_banner-content {
+    //  .jb_banner-text {
+    //    color: $main-color;
+    //  }
+    //}
   }
 
   .jb_banner-content {
@@ -191,13 +262,11 @@ iframe {
     align-items: center;
     text-decoration: none;
 
-    .jb_banner-logo {
-
-    }
-
     .jb_banner-text {
       margin: 0;
       color: white;
+      text-decoration: none;
+      font-weight: bold;
     }
 
     .jb_save-button {
