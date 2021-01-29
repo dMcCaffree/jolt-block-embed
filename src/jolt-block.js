@@ -8,7 +8,7 @@ import io from './lib/socket.io';
 import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
 (function () {
-  const isProduction = false;
+  const isProduction = true;
   const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
