@@ -65,8 +65,13 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       urlFragmentAfterSlash === 'author' ||
       urlFragmentAfterSlash === 'tags' ||
       urlFragmentAfterSlash === 'categories' ||
-      urlFragmentAfterSlash === 'authors'
+      urlFragmentAfterSlash === 'authors' ||
+      window.location.href.indexOf('localhost:') >= 0
     ) && !isArticleOverride) {
+      console.log('EDITOR');
+      if (localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+        showEditorIsActive();
+      }
       return;
     }
 
@@ -316,9 +321,9 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           }
         }
 
-        if (event.data.type === 'back') {
+        if (event.data.type === 'exit') {
           localStorage.removeItem('jolt_mode');
-          window.location = window.location.referrer || 'https://app.joltblock.com';
+          window.location = window.location.href.split('?')[0];
         }
 
         if (event.data.type === 'preview') {
@@ -364,6 +369,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
   //====== EDIT ======//
   function startEditMode() {
+    removeAll();
     createInsertLine();
     createTooltipIframe();
     createToolbar();
@@ -385,6 +391,10 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         window.JoltBlock.closeTooltip();
       }
     });
+
+    function removeAll() {
+      // const allJoltBlock = document.querySelectorAll("[class^='jb_']").remove();
+    }
 
     function createToolbar() {
       const container = create('div');
@@ -421,7 +431,6 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       line.className = 'jb_insert-line';
       line.append(plusButton);
       plusButton.addEventListener('click', e => {
-        //TODO: This should show the iframe above or below the plus button!!!
         const elementOffset = offset(e.target);
         window.JoltBlock.openTooltip();
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
@@ -479,6 +488,17 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
     }
   }
 
+  //====== EDITOR MODE ON UNSUPPORTED PAGES ======//
+  function showEditorIsActive() {
+    const banner = create('div');
+    banner.className = 'jb_banner jb_editor-active';
+    banner.innerText = 'Exit Editor ⚡️';
+    banner.addEventListener('click', () => {
+      localStorage.removeItem('jolt_mode');
+      window.location = window.location.href.split('?')[0];
+    });
+    document.body.append(banner);
+  }
 
   //====== PREVIEW MODE ======//
   function startPreviewMode() {

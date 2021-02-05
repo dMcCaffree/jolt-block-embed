@@ -204,6 +204,27 @@ iframe {
   }
 }
 
+.jb_banner {
+  position: fixed;
+  bottom: 15px;
+  background: #1b1b1b;
+  background: linear-gradient(330deg, #1b1b1b 0%, #303030 100%);
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(8,18,38,0.3);
+  transition-duration: .2s;
+  left: 20px;
+  z-index: 999999999;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+}
+
+.jb_banner:hover {
+  bottom: 18px;
+}
+
 .jb_edit-banner {
   position: fixed;
   bottom: 15px;
