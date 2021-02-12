@@ -8,10 +8,10 @@ import io from './lib/socket.io';
 import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
 (function () {
-  const isProduction = false;
-  const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
+  const isProduction = true;
+  const baseUrl = isProduction ? 'https://api.jolt.so' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
-  const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
+  const iframeBaseUrl = isProduction ? 'https://app.jolt.so' : 'http://localhost:3000';
   let socket = io(wsUrl);
   let lastURL = window.location.href.split('#')[0];
   let lastHoveredElement = null;
@@ -87,26 +87,26 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       constructor() {
         this.blogId = window.joltBlockId;
         this.articleId = '';
-        this.settings = null;
+        this.blocks = [];
         this.pendingId = '';
       }
 
-      getBlogSettings() {
-        const url = `${baseUrl}/settings/${this.blogId}`;
+      getBlocks() {
+        const url = `${baseUrl}/blocks/${this.blogId}`;
 
         client.get(url, response => {
           response = JSON.parse(response);
-          if (typeof response === 'object' && response.hasOwnProperty('analyticsEnabled')) {
-            this.settings = response;
+          if (Array.isArray(response)) {
+            this.blocks = response;
             if (mode === 'preview') {
-              const settings = decodeURI(getParameterByName('settings'));
-              this.settings = {
-                ...this.settings,
-                ...JSON.parse(settings),
-              }
+              const blocks = decodeURI(getParameterByName('blocks'));
+              // TODO NOW: Don't just add them. Replace some
+              this.blocks = JSON.parse(blocks);
             }
 
             window.Jolt.getArticleId();
+          } else {
+            this.blocks = [];
           }
         });
       }
@@ -155,8 +155,18 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       }
 
       addCommentBlock(selector) {
-        if (window.Jolt.settings && window.Jolt.settings.hasOwnProperty('commentsEnabled') && window.Jolt.settings.commentsEnabled) {
-          const elementBefore = selector ? document.querySelector(selector) : document.querySelector(window.Jolt.settings.commentsElement);
+        let globalCommentsBlock = null;
+        if (window.Jolt.blocks) {
+          const globalCommentsBlocks = window.Jolt.blocks.filter(block => block.type === 'comments' && block.status === 'active');
+          if (globalCommentsBlocks) {
+            globalCommentsBlock = globalCommentsBlocks[0];
+          }
+        } else {
+          return;
+        }
+
+        if (globalCommentsBlock) {
+          const elementBefore = selector ? document.querySelector(selector) : document.querySelector(globalCommentsBlock.selector);
           if ((elementBefore && elementBefore.length < 1) || !elementBefore) {
             retryAttempt++;
             setTimeout(this.addCommentBlock, 500);
@@ -176,7 +186,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           if (selector) {
             background = getInheritedBackgroundColor(document.querySelector(selector));
           } else {
-            background = getInheritedBackgroundColor(document.querySelector(window.Jolt.settings.commentsElement));
+            background = getInheritedBackgroundColor(document.querySelector(globalCommentsBlock.selector));
           }
 
           const iframe = create('iframe');
@@ -196,7 +206,17 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       }
 
       addSidebar() {
-        if (window.Jolt.settings && window.Jolt.settings.hasOwnProperty('commentsEnabled') && window.Jolt.settings.commentsEnabled) {
+        let globalCommentsBlock = null;
+        if (window.Jolt.blocks) {
+          const globalCommentsBlocks = window.Jolt.blocks.filter(block => block.type === 'comments' && block.status === 'active');
+          if (globalCommentsBlocks) {
+            globalCommentsBlock = globalCommentsBlocks[0];
+          }
+        } else {
+          return;
+        }
+
+        if (globalCommentsBlock) {
           const existingSidebar = document.querySelector('.jb_block-sidebar');
 
           if (existingSidebar) {
@@ -225,8 +245,10 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
       enableCommentsBlock(selector) {
         const updates = {
-          commentsEnabled: true,
-          commentsElement: selector,
+          status: 'active',
+          selector,
+          type: 'comments',
+          scope: 'global',
         };
 
         const toolbarContainer = document.querySelector('.jb_toolbar-container iframe');
@@ -237,18 +259,26 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
             data: updates,
           }, '*');
         }
-        window.Jolt.settings = {
-          ...window.Jolt.settings,
-          ...updates,
+
+        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === 'comments' && block.scope === 'global')) {
+          const globalCommentsIndex = window.Jolt.blocks.findIndex(block => block.type === 'comments' && block.scope === 'global');
+          window.Jolt.blocks[globalCommentsIndex] = {
+            ...window.Jolt.blocks[globalCommentsIndex],
+            updates,
+          }
+        } else {
+          window.Jolt.blocks.push(updates);
         }
+
         this.addCommentBlock(selector);
         window.Jolt.closeTooltip();
       }
 
       disableCommentsBlock() {
         const updates = {
-          commentsEnabled: false,
-          commentsElement: '',
+          status: 'disabled',
+          type: 'comments',
+          scope: 'global',
         };
 
         const existingCommentsBlock = document.querySelector('.jb_block-comments');
@@ -272,9 +302,12 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           }, '*');
         }
 
-        window.Jolt.settings = {
-          ...window.Jolt.settings,
-          ...updates,
+        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === 'comments' && block.scope === 'global')) {
+          const globalCommentsIndex = window.Jolt.blocks.findIndex(block => block.type === 'comments' && block.scope === 'global');
+          window.Jolt.blocks[globalCommentsIndex] = {
+            ...window.Jolt.blocks[globalCommentsIndex],
+            updates,
+          }
         }
       }
 
@@ -334,7 +367,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
     // Init window.Jolt and kick things off
     window.Jolt = new Jolt();
-    window.Jolt.getBlogSettings();
+    window.Jolt.getBlocks();
   }
 
   function watchAnalytics() {

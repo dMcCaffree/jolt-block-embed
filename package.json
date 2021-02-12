@@ -1,6 +1,6 @@
 {
   "name": "jolt-block",
-  "version": "0.0.44",
+  "version": "0.1.0",
   "description": "A no-code solution to help you grow a successful blog.",
   "files": [
     "jolt-block.js"
