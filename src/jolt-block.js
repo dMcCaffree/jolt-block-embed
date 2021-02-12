@@ -8,7 +8,7 @@ import io from './lib/socket.io';
 import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
 (function () {
-  const isProduction = true;
+  const isProduction = false;
   const baseUrl = isProduction ? 'https://api.joltblock.com' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.joltblock.com' : 'http://localhost:3000';
@@ -26,8 +26,8 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
   window.addEventListener('locationchange', function(){
     if (window.location.href.split('#')[0] !== lastURL) {
       lastURL = window.location.href.split('#')[0];
-      if (window.JoltBlock && window.JoltBlock.pendingId) {
-        socket.emit('locationchange', window.JoltBlock.pendingId);
+      if (window.Jolt && window.Jolt.pendingId) {
+        socket.emit('locationchange', window.Jolt.pendingId);
       }
       retryUntilDocumentIsReady();
     }
@@ -37,13 +37,13 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
   function retryUntilDocumentIsReady() {
     if (document && document.body) {
-      runJoltBlock();
+      runJolt();
     } else {
       setTimeout(retryUntilDocumentIsReady, 100);
     }
   }
 
-  function runJoltBlock() {
+  function runJolt() {
     const mode = getParameterByName('jolt_mode');
     const token = getParameterByName('token');
 
@@ -66,9 +66,9 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       urlFragmentAfterSlash === 'tags' ||
       urlFragmentAfterSlash === 'categories' ||
       urlFragmentAfterSlash === 'authors' ||
+      window.location.href.split('?')[0].endsWith('/blog') ||
       window.location.href.indexOf('localhost:') >= 0
     ) && !isArticleOverride) {
-      console.log('EDITOR');
       if (localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
         showEditorIsActive();
       }
@@ -83,7 +83,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
     const client = new HttpClient();
 
-    class JoltBlock {
+    class Jolt {
       constructor() {
         this.blogId = window.joltBlockId;
         this.articleId = '';
@@ -106,7 +106,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
               }
             }
 
-            window.JoltBlock.getArticleId();
+            window.Jolt.getArticleId();
           }
         });
       }
@@ -131,11 +131,11 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
               },
             }, id => {
               // console.log('PENDING ID:', id);
-              window.JoltBlock.pendingId = id;
+              window.Jolt.pendingId = id;
               watchAnalytics();
             });
 
-            window.JoltBlock.setUpBlocks();
+            window.Jolt.setUpBlocks();
           }
         });
       }
@@ -155,8 +155,8 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       }
 
       addCommentBlock(selector) {
-        if (window.JoltBlock.settings && window.JoltBlock.settings.hasOwnProperty('commentsEnabled') && window.JoltBlock.settings.commentsEnabled) {
-          const elementBefore = selector ? document.querySelector(selector) : document.querySelector(window.JoltBlock.settings.commentsElement);
+        if (window.Jolt.settings && window.Jolt.settings.hasOwnProperty('commentsEnabled') && window.Jolt.settings.commentsEnabled) {
+          const elementBefore = selector ? document.querySelector(selector) : document.querySelector(window.Jolt.settings.commentsElement);
           if ((elementBefore && elementBefore.length < 1) || !elementBefore) {
             retryAttempt++;
             setTimeout(this.addCommentBlock, 500);
@@ -176,7 +176,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           if (selector) {
             background = getInheritedBackgroundColor(document.querySelector(selector));
           } else {
-            background = getInheritedBackgroundColor(document.querySelector(window.JoltBlock.settings.commentsElement));
+            background = getInheritedBackgroundColor(document.querySelector(window.Jolt.settings.commentsElement));
           }
 
           const iframe = create('iframe');
@@ -196,7 +196,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       }
 
       addSidebar() {
-        if (window.JoltBlock.settings && window.JoltBlock.settings.hasOwnProperty('commentsEnabled') && window.JoltBlock.settings.commentsEnabled) {
+        if (window.Jolt.settings && window.Jolt.settings.hasOwnProperty('commentsEnabled') && window.Jolt.settings.commentsEnabled) {
           const existingSidebar = document.querySelector('.jb_block-sidebar');
 
           if (existingSidebar) {
@@ -237,12 +237,12 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
             data: updates,
           }, '*');
         }
-        window.JoltBlock.settings = {
-          ...window.JoltBlock.settings,
+        window.Jolt.settings = {
+          ...window.Jolt.settings,
           ...updates,
         }
         this.addCommentBlock(selector);
-        window.JoltBlock.closeTooltip();
+        window.Jolt.closeTooltip();
       }
 
       disableCommentsBlock() {
@@ -255,7 +255,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         if (existingCommentsBlock) {
           existingCommentsBlock.remove();
         }
-        window.JoltBlock.closeTooltip();
+        window.Jolt.closeTooltip();
 
         const tooltipIframe = document.querySelector('.jb_tooltip-container iframe');
 
@@ -272,8 +272,8 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           }, '*');
         }
 
-        window.JoltBlock.settings = {
-          ...window.JoltBlock.settings,
+        window.Jolt.settings = {
+          ...window.Jolt.settings,
           ...updates,
         }
       }
@@ -296,15 +296,15 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       if (event && event.data && event.data.type) {
         if (event.data.type === 'enable comments') {
           const elementSelector = uniqueSelector(lastHoveredElement.target);
-          window.JoltBlock.enableCommentsBlock(elementSelector);
+          window.Jolt.enableCommentsBlock(elementSelector);
         }
 
         if (event.data.type === 'disable comments') {
-          window.JoltBlock.disableCommentsBlock();
+          window.Jolt.disableCommentsBlock();
         }
 
         if (event.data.type === 'close') {
-          window.JoltBlock.closeTooltip();
+          window.Jolt.closeTooltip();
         }
 
         if (event.data.type === 'open sidebar') {
@@ -332,18 +332,18 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       }
     });
 
-    // Init window.JoltBlock and kick things off
-    window.JoltBlock = new JoltBlock();
-    window.JoltBlock.getBlogSettings();
+    // Init window.Jolt and kick things off
+    window.Jolt = new Jolt();
+    window.Jolt.getBlogSettings();
   }
 
   function watchAnalytics() {
-    if (window.JoltBlock.pendingId) {
+    if (window.Jolt.pendingId) {
       if (!socket.connected) {
         setTimeout(watchAnalytics, 100);
       }
 
-      socket.emit('pageview', window.JoltBlock.pendingId);
+      socket.emit('pageview', window.Jolt.pendingId);
     }
   }
 
@@ -363,7 +363,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
     commentsBlock.classList.add('customize-mode');
 
     disableOverlay.addEventListener('click', () => {
-      window.JoltBlock.disableCommentsBlock();
+      window.Jolt.disableCommentsBlock();
     });
   }
 
@@ -388,12 +388,12 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
     document.addEventListener('click', e => {
       if (e.target.className && typeof e.target.className.indexOf === 'function' && e.target.className.indexOf('jb_') < 0) {
-        window.JoltBlock.closeTooltip();
+        window.Jolt.closeTooltip();
       }
     });
 
     function removeAll() {
-      // const allJoltBlock = document.querySelectorAll("[class^='jb_']").remove();
+      // const allJolt = document.querySelectorAll("[class^='jb_']").remove();
     }
 
     function createToolbar() {
@@ -432,7 +432,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       line.append(plusButton);
       plusButton.addEventListener('click', e => {
         const elementOffset = offset(e.target);
-        window.JoltBlock.openTooltip();
+        window.Jolt.openTooltip();
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
         tooltipContainer.style.top = `${elementOffset.top - tooltipContainer.getBoundingClientRect().height + 15}px`;
         tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
