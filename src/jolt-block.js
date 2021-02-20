@@ -6,9 +6,10 @@ import offset from "./helpers/offset";
 import uniqueSelector from 'css-selector-generator';
 import io from './lib/socket.io';
 import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
+import lightOrDark from "./helpers/lightOrDark";
 
 (function () {
-  const isProduction = true;
+  const isProduction = false;
   const baseUrl = isProduction ? 'https://api.jolt.so' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.jolt.so' : 'http://localhost:3000';
@@ -100,8 +101,25 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
             this.blocks = response;
             if (mode === 'preview') {
               const blocks = decodeURI(getParameterByName('blocks'));
+              console.log('BLOCKS DECODED:', blocks);
               // TODO NOW: Don't just add them. Replace some
-              this.blocks = JSON.parse(blocks);
+              const allBlocks = [].concat(response);
+              const previewBlocks = JSON.parse(blocks);
+
+              for (let i = 0; i < previewBlocks.length; i++) {
+                const existingBlockIndex = allBlocks.findIndex(block => block.type === previewBlocks[i].type && block.scope === previewBlocks[i].scope);
+                if (existingBlockIndex > -1) {
+                  allBlocks[existingBlockIndex] = {
+                    ...allBlocks[existingBlockIndex],
+                    ...previewBlocks[i],
+                  };
+                } else {
+                  allBlocks.push(previewBlocks[i]);
+                }
+              }
+
+              console.log('ALL BLOCKS:', allBlocks);
+              this.blocks = allBlocks;
             }
 
             window.Jolt.getArticleId();
@@ -148,10 +166,12 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 
       setUpBlocks() {
         // ===== ADD BLOCKS ===== //
-
-        // 1 - COMMENTS
+        // 1. COMMENTS - IFRAME
         this.addCommentBlock();
         this.addSidebar();
+
+        // 2. EMAIL SUBSCRIBE FORM - JS
+        this.addEmailSubscribeForm();
       }
 
       addCommentBlock(selector) {
@@ -243,11 +263,11 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         }
       }
 
-      enableCommentsBlock(selector) {
+      enableBlock(blockType, selector) {
         const updates = {
           status: 'active',
           selector,
-          type: 'comments',
+          type: blockType,
           scope: 'global',
         };
 
@@ -260,37 +280,42 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           }, '*');
         }
 
-        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === 'comments' && block.scope === 'global')) {
-          const globalCommentsIndex = window.Jolt.blocks.findIndex(block => block.type === 'comments' && block.scope === 'global');
-          window.Jolt.blocks[globalCommentsIndex] = {
-            ...window.Jolt.blocks[globalCommentsIndex],
+        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === blockType && block.scope === 'global')) {
+          const globalBlockIndex = window.Jolt.blocks.findIndex(block => block.type === blockType && block.scope === 'global');
+          window.Jolt.blocks[globalBlockIndex] = {
+            ...window.Jolt.blocks[globalBlockIndex],
             updates,
           }
         } else {
           window.Jolt.blocks.push(updates);
         }
 
-        this.addCommentBlock(selector);
+        if (blockType === 'comments') {
+          this.addCommentBlock(selector);
+        } else if (blockType === 'email subscribe') {
+          this.addEmailSubscribeForm(selector);
+        }
         window.Jolt.closeTooltip();
       }
 
-      disableCommentsBlock() {
+      // TODO: ID is next step w/ page blocks
+      disableBlock(blockType) {
         const updates = {
           status: 'disabled',
-          type: 'comments',
+          type: blockType,
           scope: 'global',
         };
 
-        const existingCommentsBlock = document.querySelector('.jb_block-comments');
-        if (existingCommentsBlock) {
-          existingCommentsBlock.remove();
+        const existingBlock = document.querySelector(`.jb_block-${blockType.replace(/ /g, '-')}`);
+        if (existingBlock) {
+          existingBlock.remove();
         }
         window.Jolt.closeTooltip();
 
         const tooltipIframe = document.querySelector('.jb_tooltip-container iframe');
 
         if (tooltipIframe) {
-          tooltipIframe.contentWindow.postMessage({type: 'disable comments'}, '*');
+          tooltipIframe.contentWindow.postMessage({type: `disable ${blockType}`}, '*');
         }
 
         const toolbarIframe = document.querySelector('.jb_toolbar-container iframe');
@@ -302,12 +327,98 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
           }, '*');
         }
 
-        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === 'comments' && block.scope === 'global')) {
-          const globalCommentsIndex = window.Jolt.blocks.findIndex(block => block.type === 'comments' && block.scope === 'global');
-          window.Jolt.blocks[globalCommentsIndex] = {
-            ...window.Jolt.blocks[globalCommentsIndex],
+        if (window.Jolt.blocks && window.Jolt.blocks.filter(block => block.type === blockType && block.scope === 'global')) {
+          const globalBlockIndex = window.Jolt.blocks.findIndex(block => block.type === blockType && block.scope === 'global');
+          window.Jolt.blocks[globalBlockIndex] = {
+            ...window.Jolt.blocks[globalBlockIndex],
             updates,
           }
+        }
+      }
+
+      // TODO: Finish building out form v1
+      addEmailSubscribeForm(selector) {
+        let globalEmailSubscribeBlock = null;
+        if (window.Jolt.blocks) {
+          const globalEmailSubscribeBlocks = window.Jolt.blocks.filter(block => block.type === 'email subscribe' && block.status === 'active');
+          if (globalEmailSubscribeBlocks) {
+            globalEmailSubscribeBlock = globalEmailSubscribeBlocks[0];
+          } else {
+            return;
+          }
+        } else {
+          return;
+        }
+
+        if (globalEmailSubscribeBlock) {
+          const elementBefore = selector ? document.querySelector(selector) : document.querySelector(globalEmailSubscribeBlock.selector);
+          if ((elementBefore && elementBefore.length < 1) || !elementBefore) {
+            retryAttempt++;
+            setTimeout(this.addEmailSubscribeForm, 500);
+            return;
+          }
+
+          const existingEmailSubscribeBlock = document.querySelector('.jb_block-email-subscribe');
+
+          if (existingEmailSubscribeBlock) {
+            existingEmailSubscribeBlock.remove();
+          }
+
+          // CREATE SUBSCRIBE FORM
+          const background = selector ? getInheritedBackgroundColor(document.querySelector(selector)) : getInheritedBackgroundColor(document.querySelector(globalEmailSubscribeBlock.selector));
+          const isDark = lightOrDark(background) === 'dark';
+
+          const container = create('div');
+          container.className = 'jb_block-container jb_block-email-subscribe';
+
+          const form = create('form');
+          form.className = `jb_form ${isDark ? 'dark' : 'light'}`;
+
+          const input = create('input');
+          input.className = 'jb_input';
+          input.placeholder = 'Your email address';
+          input.type = 'email';
+          input.pattern = '[a-zA-Z0-9.-_]{1,}@[a-zA-Z.-]{2,}[.]{1}[a-zA-Z]{2,}';
+          input.required = true;
+
+          const button = create('button');
+          button.className = 'jb_button';
+          button.innerText = 'Join';
+
+          if (isDark) {
+            button.style.color = background;
+          }
+
+          form.addEventListener('submit', e => {
+            e.preventDefault();
+            button.classList.add('loading');
+            button.innerText = '...';
+
+            const url = `${baseUrl}/blocks/email-subscribe/emailoctopus`;
+            client.post(url, {formId: globalEmailSubscribeBlock.id, email: input.value}, response => {
+              if (globalEmailSubscribeBlock.settings.onCompleteType === 'show message') {
+                form.innerHTML = `<p>${globalEmailSubscribeBlock.settings.onCompleteMessage}</p>`;
+              } else if (globalEmailSubscribeBlock.settings.onCompleteType === 'redirect') {
+                window.location.href = globalEmailSubscribeBlock.settings.onCompleteRedirectUrl;
+              } else if (globalEmailSubscribeBlock.settings.onCompleteType === 'hide form') {
+                form.style.visibility = 'hidden';
+              }
+
+              button.classList.remove('loading');
+            });
+          });
+
+          form.append(input);
+          form.append(button);
+          container.append(form);
+          elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
+
+          if (typeof addDisableButtons === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+            addDisableButtons();
+          }
+        } else {
+          retryAttempt++;
+          setTimeout(this.addEmailSubscribeForm, 500);
         }
       }
 
@@ -329,11 +440,16 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
       if (event && event.data && event.data.type) {
         if (event.data.type === 'enable comments') {
           const elementSelector = uniqueSelector(lastHoveredElement.target);
-          window.Jolt.enableCommentsBlock(elementSelector);
+          window.Jolt.enableBlock('comments', elementSelector);
+        } else if (event.data.type === 'enable email subscribe') {
+          const elementSelector = uniqueSelector(lastHoveredElement.target);
+          window.Jolt.enableBlock('email subscribe', elementSelector);
         }
 
         if (event.data.type === 'disable comments') {
-          window.Jolt.disableCommentsBlock();
+          window.Jolt.disableBlock('comments');
+        } else if (event.data.type === 'disable email subscribe') {
+          window.Jolt.disableBlock('email subscribe');
         }
 
         if (event.data.type === 'close') {
@@ -360,6 +476,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         }
 
         if (event.data.type === 'preview') {
+          console.log('QUERY STRING:', event.data.data.queryString);
           window.open(`${window.location.href.split('?')[0]}${event.data.data.queryString}`);
         }
       }
@@ -396,7 +513,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
     commentsBlock.classList.add('customize-mode');
 
     disableOverlay.addEventListener('click', () => {
-      window.Jolt.disableCommentsBlock();
+      window.Jolt.disableBlock('comments');
     });
   }
 
@@ -467,7 +584,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         const elementOffset = offset(e.target);
         window.Jolt.openTooltip();
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
-        tooltipContainer.style.top = `${elementOffset.top - tooltipContainer.getBoundingClientRect().height + 15}px`;
+        tooltipContainer.style.bottom = `${(window.innerHeight - elementOffset.top) - elementOffset.height + 8}px`;
         tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
       });
 
@@ -515,7 +632,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
         const button = document.querySelector('.jb_plus-icon');
         const elementOffset = offset(button);
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
-        tooltipContainer.style.top = `${elementOffset.top - tooltipContainer.getBoundingClientRect().height + 15}px`;
+        tooltipContainer.style.bottom = `${(window.innerHeight - elementOffset.top) - (elementOffset.height) + 8}px`;
         tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
       }
     }

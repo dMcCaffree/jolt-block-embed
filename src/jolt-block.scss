@@ -116,6 +116,121 @@ iframe {
     }
   }
 
+  &.jb_block-email-subscribe {
+    display: flex;
+    justify-content: center;
+
+    .jb_form {
+      text-align: center;
+      position: relative;
+      width: 95%;
+      max-width: 400px;
+      min-width: 240px;
+
+      .jb_input {
+        width: 100%;
+        padding: 12px 100px 12px 12px;
+        border: 1px solid #252525;
+        border-radius: 8px;
+        color: black;
+        appearance: none;
+        font-size: 16px;
+        font-family: Roboto, sans-serif;
+        line-height: 21px;
+        transition-duration: .15s;
+        outline: 0;
+        //background: #f6f6f9;
+
+        &:focus {
+          border-color: #151515;
+          outline: 0;
+        }
+
+        &::placeholder {
+          color: #a0a0a0;
+        }
+
+        &:valid {
+          border-color: #151515;
+
+          + .jb_button {
+            background-color: #151515;
+            pointer-events: all;
+
+            &.loading {
+              pointer-events: none;
+              background-color: #b7b7b7;
+            }
+          }
+        }
+      }
+
+      .jb_button {
+        transition-duration: .15s;
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        transform: translateY(-50%);
+        height: calc(100% - 12px);
+        outline: 0;
+        border: 0;
+        border-radius: 6px;
+        padding-left: 20px;
+        padding-right: 20px;
+        min-width: 80px;
+        cursor: pointer;
+        pointer-events: none;
+        color: white;
+        background-color: rgba(0,0,0,.5);
+        font-weight: 500;
+        font-size: 14px;
+        font-family: Roboto, sans-serif;
+
+        &:hover {
+          opacity: .9;
+        }
+      }
+
+      &.dark {
+        .jb_input {
+          border: 1px solid #252525;
+          color: black;
+
+          &:focus {
+            border-color: #151515;
+          }
+
+          &::placeholder {
+            color: rgba(255,255,255,.3);
+          }
+
+          &:valid {
+            border-color: rgba(255,255,255,.9);
+
+            + .jb_button {
+              background-color: white;
+              pointer-events: all;
+
+              &.loading {
+                pointer-events: none;
+                background-color: rgba(255,255,255,.5);
+              }
+            }
+          }
+        }
+
+        .jb_button {
+          color: black;
+          background-color: #b7b7b7;
+
+          &:hover {
+            opacity: .9;
+          }
+        }
+      }
+    }
+  }
+
   .jb_disable-overlay {
     position: absolute;
     z-index: 1;
