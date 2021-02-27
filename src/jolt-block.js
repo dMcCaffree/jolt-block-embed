@@ -60,14 +60,12 @@ import lightOrDark from "./helpers/lightOrDark";
     const isArticleOverride = document.querySelector('[property="og:type"]') && document.querySelector('[property="og:type"]').content === 'article';
 
     if ((
-      urlFragmentAfterSlash.length <= 1 ||
       urlFragmentAfterSlash === 'preview' ||
       urlFragmentAfterSlash === 'tag' ||
       urlFragmentAfterSlash === 'author' ||
       urlFragmentAfterSlash === 'tags' ||
       urlFragmentAfterSlash === 'categories' ||
       urlFragmentAfterSlash === 'authors' ||
-      window.location.href.split('?')[0].endsWith('/blog') ||
       window.location.href.indexOf('localhost:') >= 0
     ) && !isArticleOverride) {
       if (localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
@@ -216,8 +214,8 @@ import lightOrDark from "./helpers/lightOrDark";
           container.append(iframe);
           elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
 
-          if (typeof addDisableButtons === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
-            addDisableButtons();
+          if (typeof addSettingsButton === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+            addSettingsButton();
           }
         } else {
           retryAttempt++;
@@ -263,13 +261,19 @@ import lightOrDark from "./helpers/lightOrDark";
         }
       }
 
-      enableBlock(blockType, selector) {
-        const updates = {
+      enableBlock(blockType, selector, data) {
+        let updates = {
           status: 'active',
           selector,
           type: blockType,
           scope: 'global',
         };
+        if (data) {
+          updates = {
+            ...updates,
+            ...data,
+          }
+        }
 
         const toolbarContainer = document.querySelector('.jb_toolbar-container iframe');
 
@@ -413,8 +417,8 @@ import lightOrDark from "./helpers/lightOrDark";
           container.append(form);
           elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
 
-          if (typeof addDisableButtons === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
-            addDisableButtons();
+          if (typeof addSettingsButton === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+            addSettingsButton();
           }
         } else {
           retryAttempt++;
@@ -431,7 +435,9 @@ import lightOrDark from "./helpers/lightOrDark";
       closeTooltip() {
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
         tooltipContainer.classList.remove('show');
+        tooltipContainer.classList.remove('settings');
         tooltipIsOpen = false;
+        tooltipContainer.querySelector('iframe').src = `${iframeBaseUrl}/blocks/tooltips/add`;
       }
     }
 
@@ -443,13 +449,18 @@ import lightOrDark from "./helpers/lightOrDark";
           window.Jolt.enableBlock('comments', elementSelector);
         } else if (event.data.type === 'enable email subscribe') {
           const elementSelector = uniqueSelector(lastHoveredElement.target);
-          window.Jolt.enableBlock('email subscribe', elementSelector);
+          window.Jolt.enableBlock('email subscribe', elementSelector, event.data.data);
         }
 
         if (event.data.type === 'disable comments') {
           window.Jolt.disableBlock('comments');
         } else if (event.data.type === 'disable email subscribe') {
           window.Jolt.disableBlock('email subscribe');
+        }
+
+        if (event.data.type === 'tooltip settings') {
+          const tooltipContainer = document.querySelector('.jb_tooltip-container');
+          tooltipContainer.classList.add('settings');
         }
 
         if (event.data.type === 'close') {
@@ -476,7 +487,6 @@ import lightOrDark from "./helpers/lightOrDark";
         }
 
         if (event.data.type === 'preview') {
-          console.log('QUERY STRING:', event.data.data.queryString);
           window.open(`${window.location.href.split('?')[0]}${event.data.data.queryString}`);
         }
       }
@@ -497,15 +507,15 @@ import lightOrDark from "./helpers/lightOrDark";
     }
   }
 
-  function addDisableButtons() {
+  function addSettingsButton() {
     const disableOverlay = create('div');
-    disableOverlay.className = 'jb_disable-overlay';
+    disableOverlay.className = 'jb_settings-overlay';
     disableOverlay.innerHTML = `REMOVE BLOCK`;
 
     const commentsBlock = document.querySelector('.jb_block-comments');
 
     if (!commentsBlock) {
-      setTimeout(addDisableButtons, 500);
+      setTimeout(addSettingsButton, 500);
       return;
     }
 
@@ -523,7 +533,7 @@ import lightOrDark from "./helpers/lightOrDark";
     createInsertLine();
     createTooltipIframe();
     createToolbar();
-    addDisableButtons();
+    addSettingsButton();
     document.onmouseover = moveInsertLine;
 
     window.addEventListener('scroll', function () {
@@ -537,7 +547,7 @@ import lightOrDark from "./helpers/lightOrDark";
     }
 
     document.addEventListener('click', e => {
-      if (e.target.className && typeof e.target.className.indexOf === 'function' && e.target.className.indexOf('jb_') < 0) {
+      if (tooltipIsOpen && e.target.className && typeof e.target.className.indexOf === 'function' && e.target.className.indexOf('jb_') < 0) {
         window.Jolt.closeTooltip();
       }
     });
