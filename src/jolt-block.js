@@ -9,7 +9,7 @@ import getInheritedBackgroundColor from "./helpers/getInheritedBackgroundColor";
 import lightOrDark from "./helpers/lightOrDark";
 
 (function () {
-  const isProduction = false;
+  const isProduction = true;
   const baseUrl = isProduction ? 'https://api.jolt.so' : 'http://localhost:5000';
   const wsUrl = isProduction ? 'https://api.plaudy.com' : 'http://localhost:5001';
   const iframeBaseUrl = isProduction ? 'https://app.jolt.so' : 'http://localhost:3000';
@@ -18,6 +18,7 @@ import lightOrDark from "./helpers/lightOrDark";
   let lastHoveredElement = null;
   let hasTrackedEvent = false;
   let tooltipIsOpen = false;
+  let settingsIsOpen = false;
   let retryAttempt = 0;
 
   if (hasTrackedEvent) {
@@ -99,8 +100,6 @@ import lightOrDark from "./helpers/lightOrDark";
             this.blocks = response;
             if (mode === 'preview') {
               const blocks = decodeURI(getParameterByName('blocks'));
-              console.log('BLOCKS DECODED:', blocks);
-              // TODO NOW: Don't just add them. Replace some
               const allBlocks = [].concat(response);
               const previewBlocks = JSON.parse(blocks);
 
@@ -199,6 +198,10 @@ import lightOrDark from "./helpers/lightOrDark";
 
           const container = create('div');
           container.className = 'jb_block-container jb_block-comments';
+          container.dataset.type = 'comments';
+
+          const hideOverflow = create('div');
+          hideOverflow.className = 'jb_hide-overflow';
 
           let background;
           if (selector) {
@@ -211,11 +214,12 @@ import lightOrDark from "./helpers/lightOrDark";
           iframe.className = 'jb_block-iframe jb_block-comments-iframe';
           iframe.src = `${iframeBaseUrl}/blocks/comments/${this.blogId}/${this.articleId}?background=${background ? background : ''}`;
 
-          container.append(iframe);
+          hideOverflow.append(iframe);
+          container.append(hideOverflow);
           elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
 
-          if (typeof addSettingsButton === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
-            addSettingsButton();
+          if (typeof addSettingsButtons === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+            addSettingsButtons();
           }
         } else {
           retryAttempt++;
@@ -243,6 +247,7 @@ import lightOrDark from "./helpers/lightOrDark";
 
           const container = create('div');
           container.className = 'jb_block-container jb_block-sidebar';
+          container.dataset.type = 'sidebar';
 
           const backdrop = create('div');
           backdrop.className = 'jb_backdrop';
@@ -264,10 +269,12 @@ import lightOrDark from "./helpers/lightOrDark";
       enableBlock(blockType, selector, data) {
         let updates = {
           status: 'active',
-          selector,
           type: blockType,
           scope: 'global',
         };
+        if (selector) {
+          updates.selector = selector;
+        }
         if (data) {
           updates = {
             ...updates,
@@ -340,7 +347,6 @@ import lightOrDark from "./helpers/lightOrDark";
         }
       }
 
-      // TODO: Finish building out form v1
       addEmailSubscribeForm(selector) {
         let globalEmailSubscribeBlock = null;
         if (window.Jolt.blocks) {
@@ -374,6 +380,7 @@ import lightOrDark from "./helpers/lightOrDark";
 
           const container = create('div');
           container.className = 'jb_block-container jb_block-email-subscribe';
+          container.dataset.type = 'email subscribe';
 
           const form = create('form');
           form.className = `jb_form ${isDark ? 'dark' : 'light'}`;
@@ -417,8 +424,8 @@ import lightOrDark from "./helpers/lightOrDark";
           container.append(form);
           elementBefore.parentNode.insertBefore(container, elementBefore.nextSibling);
 
-          if (typeof addSettingsButton === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
-            addSettingsButton();
+          if (typeof addSettingsButtons === 'function' && localStorage.getItem('jolt_mode') === 'edit' && mode !== 'preview') {
+            addSettingsButtons();
           }
         } else {
           retryAttempt++;
@@ -434,6 +441,15 @@ import lightOrDark from "./helpers/lightOrDark";
 
       closeTooltip() {
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
+        const settingsOverlays = document.querySelectorAll('.jb_settings-overlay');
+
+        if (settingsOverlays) {
+          for (let i = 0; i < settingsOverlays.length; i++) {
+            settingsOverlays[i].classList.remove('show');
+          }
+          settingsIsOpen = false;
+        }
+
         tooltipContainer.classList.remove('show');
         tooltipContainer.classList.remove('settings');
         tooltipIsOpen = false;
@@ -445,10 +461,10 @@ import lightOrDark from "./helpers/lightOrDark";
     window.addEventListener('message', event => {
       if (event && event.data && event.data.type) {
         if (event.data.type === 'enable comments') {
-          const elementSelector = uniqueSelector(lastHoveredElement.target);
+          const elementSelector = settingsIsOpen ? null : uniqueSelector(lastHoveredElement.target);
           window.Jolt.enableBlock('comments', elementSelector);
         } else if (event.data.type === 'enable email subscribe') {
-          const elementSelector = uniqueSelector(lastHoveredElement.target);
+          const elementSelector = settingsIsOpen ? null : uniqueSelector(lastHoveredElement.target);
           window.Jolt.enableBlock('email subscribe', elementSelector, event.data.data);
         }
 
@@ -507,24 +523,57 @@ import lightOrDark from "./helpers/lightOrDark";
     }
   }
 
-  function addSettingsButton() {
-    const disableOverlay = create('div');
-    disableOverlay.className = 'jb_settings-overlay';
-    disableOverlay.innerHTML = `REMOVE BLOCK`;
+  function addSettingsButtons() {
+    const blocks = document.querySelectorAll('.jb_block-container');
 
-    const commentsBlock = document.querySelector('.jb_block-comments');
-
-    if (!commentsBlock) {
-      setTimeout(addSettingsButton, 500);
+    if (!blocks) {
+      setTimeout(addSettingsButtons, 500);
       return;
     }
 
-    commentsBlock.append(disableOverlay);
-    commentsBlock.classList.add('customize-mode');
+    for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].querySelector('.jb_settings-overlay')) {
+        return;
+      }
 
-    disableOverlay.addEventListener('click', () => {
-      window.Jolt.disableBlock('comments');
-    });
+      const settingsOverlay = create('div');
+      settingsOverlay.className = 'jb_settings-overlay';
+
+      const label = create('label');
+      label.className = 'jb_settings-label';
+      label.innerText = blocks[i].dataset.type;
+
+      blocks[i].append(settingsOverlay);
+      blocks[i].append(label);
+
+      // TODO: Change to show settings tooltip
+      settingsOverlay.addEventListener('click', e => {
+        const settingsOverlays = document.querySelectorAll('.jb_settings-overlay');
+
+        if (settingsOverlays) {
+          for (let i = 0; i < settingsOverlays.length; i++) {
+            settingsOverlays[i].classList.remove('show')
+          }
+        }
+
+        const tooltipContainer = document.querySelector('.jb_tooltip-container');
+
+        tooltipContainer.querySelector('iframe').contentWindow.postMessage({
+          type: 'settings',
+          data: {
+            blockType: blocks[i].dataset.type,
+          },
+        }, '*');
+
+        e.target.classList.add('show');
+        const elementOffset = offset(e.target);
+        window.Jolt.openTooltip();
+        tooltipContainer.style.bottom = `${(window.innerHeight - elementOffset.top) - elementOffset.height + 42}px`;
+        tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
+        tooltipContainer.classList.add('settings');
+        settingsIsOpen = true;
+      });
+    }
   }
 
   //====== EDIT ======//
@@ -533,7 +582,7 @@ import lightOrDark from "./helpers/lightOrDark";
     createInsertLine();
     createTooltipIframe();
     createToolbar();
-    addSettingsButton();
+    addSettingsButtons();
     document.onmouseover = moveInsertLine;
 
     window.addEventListener('scroll', function () {
@@ -606,7 +655,7 @@ import lightOrDark from "./helpers/lightOrDark";
         return;
       }
 
-      if (tooltipIsOpen) {
+      if (tooltipIsOpen && !settingsIsOpen) {
         var line = document.querySelector('.jb_insert-line');
         const elementOffset = offset(e.target);
         line.style.top = `${elementOffset.top + elementOffset.height - 1}px`;
@@ -638,11 +687,17 @@ import lightOrDark from "./helpers/lightOrDark";
     }
 
     function moveTooltip() {
-      if (tooltipIsOpen) {
+      if (tooltipIsOpen && !settingsIsOpen) {
         const button = document.querySelector('.jb_plus-icon');
         const elementOffset = offset(button);
         const tooltipContainer = document.querySelector('.jb_tooltip-container');
         tooltipContainer.style.bottom = `${(window.innerHeight - elementOffset.top) - (elementOffset.height) + 8}px`;
+        tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
+      } else if (tooltipIsOpen && settingsIsOpen) {
+        const block = document.querySelector('.jb_settings-overlay.show');
+        const elementOffset = offset(block);
+        const tooltipContainer = document.querySelector('.jb_tooltip-container');
+        tooltipContainer.style.bottom = `${(window.innerHeight - elementOffset.top) - (elementOffset.height) + 42}px`;
         tooltipContainer.style.left = `${elementOffset.left + elementOffset.width / 2}px`;
       }
     }

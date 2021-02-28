@@ -27,6 +27,25 @@ iframe {
   border: 0;
 }
 
+.jb_button {
+  transition-duration: .15s;
+  outline: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 20px;
+  min-width: 80px;
+  cursor: pointer;
+  color: black;
+  background-color: white;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: Roboto, sans-serif;
+
+  &:hover {
+    opacity: .9;
+  }
+}
+
 .jb_insert-line {
   position: fixed;
   width: 100%;
@@ -64,13 +83,18 @@ iframe {
   width: 100%;
   position: relative;
 
+  .jb_hide-overflow {
+    overflow: hidden;
+    height: 100%;
+  }
+
   iframe {
     width: 100%;
+    max-height: 100%;
   }
 
   &.jb_block-comments {
-    height: 84px;
-    overflow: hidden;
+    height: 72px;
   }
 
   &.jb_block-sidebar {
@@ -119,6 +143,8 @@ iframe {
   &.jb_block-email-subscribe {
     display: flex;
     justify-content: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
 
     .jb_form {
       text-align: center;
@@ -181,7 +207,7 @@ iframe {
         cursor: pointer;
         pointer-events: none;
         color: white;
-        background-color: rgba(0,0,0,.7);
+        background-color: black;
         font-weight: 500;
         font-size: 14px;
         font-family: Roboto, sans-serif;
@@ -241,18 +267,38 @@ iframe {
     display: none;
     top: 0;
     left: 0;
-    background-color: rgba($text-color, .5);
-    color: white;
-    font-weight: bold;
-    letter-spacing: 1px;
-    border-radius: 5px;
+    background-color: rgba(0,0,0,0);
     cursor: pointer;
-    font-family: Roboto, sans-serif;
+    border: 2px solid $main-color;
+
+    &.show {
+      display: flex;
+
+      + .jb_settings-label {
+        display: flex;
+      }
+    }
+
+    + .jb_settings-label {
+      color: $main-color;
+      font-size: 12px;
+      position: absolute;
+      text-transform: uppercase;
+      top: -24px;
+      left: 5px;
+      font-weight: 500;
+      font-family: 'Roboto', sans-serif;
+      display: none;
+    }
   }
 
   &:hover {
     .jb_settings-overlay {
       display: flex;
+
+      + .jb_settings-label {
+        display: flex;
+      }
     }
   }
 }
